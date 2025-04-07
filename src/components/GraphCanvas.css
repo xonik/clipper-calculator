@@ -1,0 +1,13 @@
+.graph-canvas {
+    fill: #ff0000;
+}
+
+.graph-canvas__svg {
+    height: 100%;
+    width: 100%
+}
+
+.graph-line {
+    stroke: grey;
+    stroke-width: 0.01;
+}
