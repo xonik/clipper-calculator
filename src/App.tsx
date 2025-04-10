@@ -1,16 +1,22 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
-import GraphCanvas from "./components/GraphCanvas";
-import { calculatePoints, Point } from "./logic/graphCalculator";
+import { calculatePoints } from "./logic/graphCalculator";
 import { LineChart } from "@mui/x-charts";
+import { solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
+import { Point } from "./logic/types";
 
 function App() {
 
-    const points = calculatePoints(100)
+    //const points = calculatePoints(100)
+
+    const points = solveDiodeClipperForYRange(0, 0.6, 0.02)
+
+
+    const opampPoints = solveOpAmpGainForX(points)
+    console.log(opampPoints)
 
     const five: Point[] = []
-    for(let i=0; i<100; i++){
+    for(let i=0; i<100; i+=10){
         five.push({
             x: i, y: 1000
         })
@@ -75,6 +81,14 @@ function App() {
                         <td></td>
                     </tr>
                     <tr>
+                        <td>Attenuated input (max)</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Post clipper voltage (max)</td>
+                        <td></td>
+                    </tr>
+                    <tr>
                         <td>Post clipper gain</td>
                         <td></td>
                     </tr>
@@ -95,10 +109,15 @@ function App() {
                             showMark: false,
                         },
                         {
-                            data: five.map((point) => point.y),
+                            data: opampPoints.map((point) => point.y),
                             area: false,
                             showMark: false,
                         },
+                        /*{
+                            data: five.map((point) => point.y),
+                            area: false,
+                            showMark: false,
+                        },*/
                     ]}
                     width={1000}
                     height={1000}
