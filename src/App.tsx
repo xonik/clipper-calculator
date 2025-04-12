@@ -1,16 +1,18 @@
 import React from 'react';
 import './App.css';
-import { calculatePoints } from "./logic/graphCalculator";
 import { LineChart } from "@mui/x-charts";
-import { solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
+import { solveDiodeClipperForXRange, solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
 import { Point } from "./logic/types";
+import { findResistorDividerCombo, resistorSeries } from "./logic/resistorCalculator";
 
 function App() {
 
     //const points = calculatePoints(100)
 
     const points = solveDiodeClipperForYRange(0, 0.6, 0.02)
+    const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01)
 
+    findResistorDividerCombo(10000, 100000, 0.21, 'E96')
 
     const opampPoints = solveOpAmpGainForX(points)
     console.log(opampPoints)
@@ -107,7 +109,7 @@ function App() {
                             data: points.map((point) => point.y),
                             area: false,
                             showMark: false,
-                        },
+                        },/*
                         {
                             data: opampPoints.map((point) => point.y),
                             area: false,

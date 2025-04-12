@@ -24,14 +24,14 @@ const Rg = 1000
 const Rf = 10000
 const I0 = 2 / 1000000000
 const Vt = 25/1000
-const n = 1
+const n = 1.9
 
 // intermediate
 const g = (1+Rf/Rg)
 const T = Vt * n;
 const k = Rf * I0;
 
-function solveForX(y: number, tol = 1e-6, maxIter = 100) {
+export function solveForX(y: number, tol = 1e-6, maxIter = 100) {
 
     let x = y / g; // Initial guess
 
@@ -48,6 +48,29 @@ function solveForX(y: number, tol = 1e-6, maxIter = 100) {
     }
     console.log(`Solution did not converge for y=${y}`);
     return 0
+}
+
+// Works but doesn't converge on top for some reason. Not sure why.
+function solveForY(x: number, tol = 1e-6, maxIter = 100): number {
+
+
+    let y = g * x; // Initial guess
+
+    for (let i = 0; i < maxIter; i++) {
+        let f_y = g * x - k * Math.exp((y - x) / T) - y;
+        let df_y = -(k / T) * Math.exp((y - x) / T) - 1;
+
+        let y_new = y - f_y / df_y;
+
+        if (Math.abs(y_new - y) < tol) {
+            return y_new;
+        }
+
+        y = y_new;
+    }
+
+    console.log(`Solution did not converge for x=${x}`);
+    return 0;
 }
 
 function testForXY(x: number, y: number) {
@@ -71,6 +94,17 @@ export function solveDiodeClipperForYRange(y0: number, y1: number, interval: num
     const points = yValues.map((y) => ({
         x: solveForX(y),
         y,
+    }))
+
+    return points
+}
+
+export function solveDiodeClipperForXRange(x0: number, x1: number, interval: number) {
+    const xValues = generateList(x0, x1, interval)
+
+    const points = xValues.map((x) => ({
+        x,
+        y: solveForY(x),
     }))
 
     return points
