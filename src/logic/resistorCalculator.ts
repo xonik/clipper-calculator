@@ -1,4 +1,3 @@
-
 export const resistorSeries = {
     E12: [100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820],
     E24: [
@@ -40,7 +39,7 @@ export const resistorSeries = {
 const multipliers = [0.01, 0.1, 1, 10, 100, 1000, 10000, 100000] // 1 to 10MOhm
 
 
-function getAllResistorValues(series: number[]){
+function getAllResistorValues(series: number[]) {
     let values: number[] = []
     multipliers.forEach((multiplier) => {
         values = [...values, ...series.map((value) => value * multiplier)]
@@ -50,10 +49,10 @@ function getAllResistorValues(series: number[]){
 
 type ResistorSeriesKey = keyof typeof resistorSeries
 
-export function findResistorDividerCombo(r2Min: number, r2Max: number, targetGain: number, key: ResistorSeriesKey){
+function findLeastError(r2Min: number, r2Max: number, targetGain: number, key: ResistorSeriesKey, expression: (r1: number, r2: number) => number) {
 
     const series = resistorSeries[key]
-    if(!series){
+    if (!series) {
         return
     }
     const resistors = getAllResistorValues(series)
@@ -68,9 +67,9 @@ export function findResistorDividerCombo(r2Min: number, r2Max: number, targetGai
     // Can be optimised with binary searching
     r2Candidates.forEach((r2) => {
         resistors.forEach((r1) => {
-            const gain = r2 / (r1 + r2)
+            const gain = expression(r1, r2)
             const error = Math.abs(targetGain - gain)
-            if( error < smallestError){
+            if (error < smallestError) {
                 smallestError = error
                 bestR1 = r1
                 bestR2 = r2
@@ -80,5 +79,43 @@ export function findResistorDividerCombo(r2Min: number, r2Max: number, targetGai
     })
 
     console.log(`Resistor divider: Best alternative for gain ${targetGain} is r1=${bestR1}, r2=${bestR2}`)
-    console.log(`gain = ${bestGain}, error = ${smallestError}`)
+    console.log(`gain = ${bestGain.toPrecision(3)}, abs error = ${smallestError.toPrecision(3)}, error % ${(smallestError*100/targetGain).toPrecision(3)}`)
+
+    return {
+        r1: bestR1,
+        r2: bestR2,
+        gain: bestGain,
+        error: smallestError
+    }
+}
+
+// TODO: allow combining two resistors
+export function findResistorDividerCombo(r2Min: number, r2Max: number, targetGain: number, key: ResistorSeriesKey) {
+    return findLeastError(
+        r2Min,
+        r2Max,
+        targetGain,
+        key,
+        (r1: number, r2: number) => r2 / (r1 + r2)
+    )
+}
+
+export function findInvertingGainCombo(rfMin: number, rfMax: number, targetGain: number, key: ResistorSeriesKey) {
+    return findLeastError(
+        rfMin,
+        rfMax,
+        targetGain,
+        key,
+        (rIn: number, rf: number) => rf/rIn
+    )
+}
+
+export function findNonInvertingGainCombo(rfMin: number, rfMax: number, targetGain: number, key: ResistorSeriesKey) {
+    return findLeastError(
+        rfMin,
+        rfMax,
+        targetGain,
+        key,
+        (rIn: number, rf: number) => 1 + rf/rIn
+    )
 }

@@ -3,7 +3,8 @@ import './App.css';
 import { LineChart } from "@mui/x-charts";
 import { solveDiodeClipperForXRange, solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
 import { Point } from "./logic/types";
-import { findResistorDividerCombo, resistorSeries } from "./logic/resistorCalculator";
+import { findResistorDividerCombo } from "./logic/resistorCalculator";
+import { parseComponentValue, printComponentValue } from "./logic/valueParser";
 
 function App() {
 
@@ -12,10 +13,28 @@ function App() {
     const points = solveDiodeClipperForYRange(0, 0.6, 0.02)
     const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01)
 
-    findResistorDividerCombo(10000, 100000, 0.21, 'E96')
+    findResistorDividerCombo(10000, 100000, 0.21, 'E12')
 
     const opampPoints = solveOpAmpGainForX(points)
     console.log(opampPoints)
+
+    console.log(parseComponentValue('1k5'))
+    console.log(parseComponentValue('1.5k'))
+    console.log(parseComponentValue('1.5M'))
+    console.log(parseComponentValue('1.5897234M'))
+    console.log(parseComponentValue('1.5M5'))
+    console.log(parseComponentValue('15000.5'))
+    console.log(parseComponentValue('15000'))
+    console.log(parseComponentValue('15000m'))
+
+    console.log(printComponentValue(parseComponentValue('1k5')))
+    console.log(printComponentValue(parseComponentValue('1.5k')))
+    console.log(printComponentValue(parseComponentValue('1.5M')))
+    console.log(printComponentValue(parseComponentValue('1.5897234M')))
+    console.log(printComponentValue(parseComponentValue('1.5M5')))
+    console.log(printComponentValue(parseComponentValue('15000.5')))
+    console.log(printComponentValue(parseComponentValue('15000')))
+    console.log(printComponentValue(parseComponentValue('15000m')))
 
     const five: Point[] = []
     for(let i=0; i<100; i+=10){
