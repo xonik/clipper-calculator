@@ -36,9 +36,12 @@ export const resistorSeries = {
     ]
 }
 
+export type ResistorSeriesKey = keyof typeof resistorSeries
+
 const multipliers = [0.01, 0.1, 1, 10, 100, 1000, 10000, 100000] // 1 to 10MOhm
 
 // TODO: This could perhaps be even better if we allow resistors from two multipliers down?
+
 function getExpandedSeries(series: number[]) {
     return series.flatMap((value, valueIndex) => {
         return [value, ...series
@@ -47,6 +50,7 @@ function getExpandedSeries(series: number[]) {
         ]
     })
 }
+
 
 function getAllResistorValues(series: number[], combineTwo = false) {
 
@@ -64,9 +68,6 @@ function getAllResistorValues(series: number[], combineTwo = false) {
 
     return values
 }
-
-type ResistorSeriesKey = keyof typeof resistorSeries
-
 // TODO: Improve min/max to account for both r1 and r2 min/max.
 function findLeastError(r2Min: number, r2Max: number, targetGain: number, key: ResistorSeriesKey, expression: (r1: number, r2: number) => number) {
 

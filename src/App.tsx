@@ -8,10 +8,10 @@ import {
 } from "./logic/diodeClipperSolver";
 import { Point } from "./logic/types";
 import {
-    findInvertingGainCombo,
     findNonInvertingGainCombo,
-    findResistorDividerCombo
+    findResistorDividerCombo, resistorSeries,
 } from "./logic/resistorCalculator";
+import type { ResistorSeriesKey } from "./logic/resistorCalculator";
 import { parseComponentValue, printComponentValue } from "./logic/valueParser";
 
 function App() {
@@ -25,10 +25,16 @@ function App() {
 
     const [Rg, setRg] = useState('1k')
     const [Rf, setRf] = useState('10k')
+    const [gainSlider, setGainSlider] = useState(1)
+    const [scaleSlider, setScaleSlider] = useState(0)
+    const [maxClipperOutputSlider, setMaxClipperOutputSlider] = useState(0)
+
+
     const [maxCircuitOut, setMaxCircuitOut] = useState('10')
     const [maxClipperOut, setMaxClipperOut] = useState('0.6')
     const [endToEndLinearGain, setEndToEndLinearGain] = useState('1')
     const [clippingPointStartPercent, setClippingPointStartPercent] = useState('3')
+    const [selectedResistorSeries, setSelectedResistorSeries] = useState<ResistorSeriesKey>('E12')
 
 
     const solverParams = {
@@ -68,8 +74,8 @@ function App() {
 
     console.log(pointsWithLinearAndDiff)
 
-    const suggestedResistorDivider = findResistorDividerCombo(1000, 100000, inputAttenuation, 'E48')
-    const suggestedPostGainResistors = findNonInvertingGainCombo(1000, 100000, postClipperGain, 'E48')
+    const suggestedResistorDivider = findResistorDividerCombo(1000, 100000, inputAttenuation, selectedResistorSeries)
+    const suggestedPostGainResistors = findNonInvertingGainCombo(1000, 100000, postClipperGain, selectedResistorSeries)
 
     findNonInvertingGainCombo(500, 100000, 0.2, 'E12')
 
@@ -78,6 +84,27 @@ function App() {
         five.push({
             x: i, y: 1000
         })
+    }
+
+    const updateGainSlider = (valueString: string) => {
+        const value = Number.parseInt(valueString)
+        const rgValue = parseComponentValue(Rg)
+        setRf(printComponentValue(rgValue * (1 + value * 0.25)))
+        setGainSlider(value)
+    }
+
+    const updateScaleSlider = (valueString: string) => {
+        const value = Number.parseInt(valueString)
+        const currentRelationship = clipperGain - 1
+        setRg(printComponentValue(value * 100))
+        setRf(printComponentValue(currentRelationship * value * 100))
+        setScaleSlider(value)
+    }
+
+    const updateMaxClipperOutputSlider = (valueString: string) => {
+        const value = Number.parseInt(valueString)
+        setMaxClipperOut(`${value / 100}`)
+        setMaxClipperOutputSlider(value)
     }
 
     return (
@@ -138,6 +165,14 @@ function App() {
                         <td> Clipper linear gain:</td>
                         <td>{clipperGain}</td>
                     </tr>
+                    <tr>
+                        <td>Set gain:</td>
+                        <td><input type="range" min={0} value={gainSlider} onChange={(event) => updateGainSlider(event.target.value)}></input></td>
+                    </tr>
+                    <tr>
+                        <td>Set resistor scale</td>
+                        <td><input type="range" min={1} value={scaleSlider} onChange={(event) => updateScaleSlider(event.target.value)}></input></td>
+                    </tr>
                     </tbody>
                 </table>
                 <table>
@@ -158,6 +193,10 @@ function App() {
                         <td><input type="text" value={maxClipperOut}
                                    onChange={(event) => setMaxClipperOut(event.target.value)}></input> Volts
                         </td>
+                    </tr>
+                    <tr>
+                        <td>Set resistor scale</td>
+                        <td><input type="range" min={1} value={maxClipperOutputSlider} onChange={(event) => updateMaxClipperOutputSlider(event.target.value)}></input></td>
                     </tr>
                     <tr>
                         <td>End to end gain</td>
@@ -215,42 +254,71 @@ function App() {
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Input resistor divider suggestion</td>
-                        <td>R1: {printComponentValue(suggestedResistorDivider?.r1 || 0, 'Ω')}, R2: {printComponentValue(suggestedResistorDivider?.r2 || 0, 'Ω')}</td>
+                        <td>Resistor series</td>
+                        <td>
+                            <select value={selectedResistorSeries}
+                                    onChange={(event) => setSelectedResistorSeries(event.target.value as ResistorSeriesKey)}>
+                                {Object.keys(resistorSeries).map((key) => <option value={key}>{key}
+                                </option>)}
+                            </select></td>
                     </tr>
-                    <tr><td>Gain: {suggestedResistorDivider?.gain.toPrecision(4)}</td></tr>
+                    <tr>
+                        <td>Input resistor divider suggestion</td>
+                        <td>R1: {printComponentValue(suggestedResistorDivider?.r1 || 0, 'Ω')},
+                            R2: {printComponentValue(suggestedResistorDivider?.r2 || 0, 'Ω')}</td>
+                    </tr>
+                    <tr>
+                        <td>Gain: {suggestedResistorDivider?.gain.toPrecision(4)}</td>
+                    </tr>
                     <tr>
                         <td>Post clipper gain resistor suggestion</td>
-                        <td>R_g: {printComponentValue(suggestedPostGainResistors?.r1 || 0, 'Ω')}, R_f: {printComponentValue(suggestedPostGainResistors?.r2 || 0, 'Ω')}</td>
+                        <td>R_g: {printComponentValue(suggestedPostGainResistors?.r1 || 0, 'Ω')},
+                            R_f: {printComponentValue(suggestedPostGainResistors?.r2 || 0, 'Ω')}</td>
                     </tr>
-                    <tr><td>Gain: {suggestedPostGainResistors?.gain.toPrecision(4)}</td></tr>
-                    <tr><td>End-to-end gain: {((suggestedResistorDivider?.gain || 0) * clipperGain * (suggestedPostGainResistors?.gain || 0)).toPrecision(4)}</td></tr>
+                    <tr>
+                        <td>Gain: {suggestedPostGainResistors?.gain.toPrecision(4)}</td>
+                    </tr>
+                    <tr>
+                        <td>End-to-end
+                            gain: {((suggestedResistorDivider?.gain || 0) * clipperGain * (suggestedPostGainResistors?.gain || 0)).toPrecision(4)}</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
             <div>
                 <LineChart
-                    xAxis={[{ data: points.map((point) => point.x * totalGain) }]}
+                    xAxis={[{ data: points.map((point) => point.x * totalGain), min: 0, max: 10 }]}
+                    yAxis={[{ min: 0, max: 10 }]}
                     grid={{ vertical: true, horizontal: true }}
                     series={[
                         {
+                            data: linearYs.map((y) => y * postClipperGain),
+                            area: false,
+                            showMark: false,
+                            label: 'Linear (V)'
+                        }, {
                             data: points.map((point) => point.y * postClipperGain),
                             area: false,
                             showMark: false,
+                            label: 'Clipped (V)'
                         },
                         {
                             data: clippingPointsLine.map((y) => y * postClipperGain),
                             area: false,
                             showMark: false,
+                            label: 'Clip start (V)'
                         },
-                        {
-                            data: linearYs.map((y) => y * postClipperGain),
-                            area: false,
-                            showMark: false,
-                        },
+
                     ]}
                     width={500}
                     height={500}
+                    slotProps={{
+                        legend: {
+                            direction: 'row',
+                            position: { vertical: 'bottom', horizontal: 'middle' },
+                            padding: 0,
+                        },
+                    }}
                 />
                 <LineChart
                     title="End to end"
