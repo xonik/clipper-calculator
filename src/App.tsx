@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import './App.css';
 import { LineChart } from "@mui/x-charts";
-import { solveDiodeClipperForXRange, solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
+import {
+    findDeviationFromLinear,
+    solveDiodeClipperForXRange,
+    solveForX,
+} from "./logic/diodeClipperSolver";
 import { Point } from "./logic/types";
 import {
     findInvertingGainCombo,
@@ -15,11 +19,16 @@ function App() {
     //const points = calculatePoints(100)
 
     const [I0, setI0] = useState(printComponentValue(2 / 1000000000))
-    const [Vt, setVt] = useState(printComponentValue(25/1000))
+    const [Vt, setVt] = useState(printComponentValue(25 / 1000))
     const [n, setN] = useState(printComponentValue(1.9))
+    const [maxOpampSignal, setMaxOpampSignal] = useState(printComponentValue(10.5))
 
     const [Rg, setRg] = useState('1k')
     const [Rf, setRf] = useState('10k')
+    const [maxCircuitOut, setMaxCircuitOut] = useState('10')
+    const [maxClipperOut, setMaxClipperOut] = useState('0.6')
+    const [endToEndLinearGain, setEndToEndLinearGain] = useState('1')
+    const [clippingPointStartPercent, setClippingPointStartPercent] = useState('3')
 
 
     const solverParams = {
@@ -30,14 +39,39 @@ function App() {
         Rf: parseComponentValue(Rf),
     }
 
-    const points = solveDiodeClipperForYRange(0, 0.6, 0.02, solverParams)
-    const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01, solverParams)
+    const maxCircuitOutVolts = parseComponentValue(maxCircuitOut)
+    const maxClipperOutVolts = parseComponentValue(maxClipperOut)
 
-    findResistorDividerCombo(10000, 100000, 0.21, 'E12')
+    const maxClipperInputVolts = solveForX(maxClipperOutVolts, solverParams)
+
+    const clipperGain = 1 + (solverParams.Rf / solverParams.Rg)
+    const postClipperGain = maxCircuitOutVolts / maxClipperOutVolts
+
+    const endToEndLinearGainValue = parseComponentValue(endToEndLinearGain)
+    const totalGain = clipperGain * postClipperGain / endToEndLinearGainValue
+    const inputAttenuation = 1 / totalGain
+    const maxInputVolts = maxClipperInputVolts * totalGain
+
+    const stepInterval = 0.001
+    const points = solveDiodeClipperForXRange(0, maxClipperInputVolts, stepInterval, solverParams)
+    const pointsWithLinearAndDiff = findDeviationFromLinear(points, clipperGain)
+    const linearYs = pointsWithLinearAndDiff.map((point) => point.yLinear)
+
+    const clippingPointStartPercentValue = parseComponentValue(clippingPointStartPercent)
+    const clippingPointInClipper = pointsWithLinearAndDiff.find((point) =>
+        point.yDiffPercent > clippingPointStartPercentValue
+    )
+
+    const clippingPointsLine = points.map((point) => clippingPointInClipper?.y ?? 0)
+
+    const clippingPointInput = (clippingPointInClipper?.x ?? 0) * totalGain
+
+    console.log(pointsWithLinearAndDiff)
+
+    const suggestedResistorDivider = findResistorDividerCombo(1000, 100000, inputAttenuation, 'E48')
+    const suggestedPostGainResistors = findNonInvertingGainCombo(1000, 100000, postClipperGain, 'E48')
+
     findNonInvertingGainCombo(500, 100000, 0.2, 'E12')
-
-    //const opampPoints = solveOpAmpGainForX(points)
-    //console.log(opampPoints)
 
     const five: Point[] = []
     for (let i = 0; i < 100; i += 10) {
@@ -58,15 +92,28 @@ function App() {
                     <tbody>
                     <tr>
                         <td>I_0</td>
-                        <td><input type="text" value={I0} onChange={(event) => setI0(event.target.value)}></input></td>
+                        <td><input type="text" value={I0} onChange={(event) => setI0(event.target.value)}></input> Amps
+                        </td>
                     </tr>
                     <tr>
                         <td>V_t</td>
-                        <td><input type="text" value={Vt} onChange={(event) => setVt(event.target.value)}></input></td>
+                        <td><input type="text" value={Vt} onChange={(event) => setVt(event.target.value)}></input> Volts
+                        </td>
                     </tr>
                     <tr>
                         <td>n</td>
                         <td><input type="text" value={n} onChange={(event) => setN(event.target.value)}></input></td>
+                    </tr>
+                    <tr>
+                        <td>Max opamp signal voltage</td>
+                        <td>
+                            {/* any higher than this and op amps elsewhere in the circuit clips */}
+                            <input
+                                type="text"
+                                value={maxOpampSignal}
+                                onChange={(event) => setMaxOpampSignal(event.target.value)}>
+                            </input> Volts
+                        </td>
                     </tr>
                     </tbody>
                 </table>
@@ -79,33 +126,56 @@ function App() {
                     <tbody>
                     <tr>
                         <td>R_gnd</td>
-                        <td><input type="text" value={Rg} onChange={(event) => setRg(event.target.value)}></input></td>
+                        <td><input type="text" value={Rg} onChange={(event) => setRg(event.target.value)}></input> Ohm
+                        </td>
                     </tr>
                     <tr>
                         <td>R_f</td>
-                        <td><input type="text" value={Rf} onChange={(event) => setRf(event.target.value)}></input></td>
+                        <td><input type="text" value={Rf} onChange={(event) => setRf(event.target.value)}></input> Ohm
+                        </td>
+                    </tr>
+                    <tr>
+                        <td> Clipper linear gain:</td>
+                        <td>{clipperGain}</td>
                     </tr>
                     </tbody>
                 </table>
                 <table>
                     <thead>
                     <tr>
-                        <th>Voltages</th>
+                        <th>Target params</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Max input</td>
-                        <td><input type="text"></input></td>
+                        <td>Max circuit output</td>
+                        <td><input type="text" value={maxCircuitOut}
+                                   onChange={(event) => setMaxCircuitOut(event.target.value)}></input> Volts
+                        </td>
                     </tr>
                     <tr>
                         <td>Max clipper output</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={maxClipperOut}
+                                   onChange={(event) => setMaxClipperOut(event.target.value)}></input> Volts
+                        </td>
                     </tr>
                     <tr>
-                        <td>Max circuit output</td>
-                        <td><input type="text"></input></td>
+                        <td>End to end gain</td>
+                        <td><input type="text" value={endToEndLinearGain}
+                                   onChange={(event) => setEndToEndLinearGain(event.target.value)}></input>
+                        </td>
                     </tr>
+                    <tr>
+                        {/*
+                            Set this to whatever error you will accept as the biggest deviation from the linear output at the point for non
+                            clipped signals
+                        */}
+                        <td>Allowed clipping point error</td>
+                        <td><input type="text" value={clippingPointStartPercent}
+                                   onChange={(event) => setClippingPointStartPercent(event.target.value)}></input> %
+                        </td>
+                    </tr>
+
                     </tbody>
                 </table>
                 <table>
@@ -116,30 +186,74 @@ function App() {
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Input attenuation</td>
-                        <td></td>
+                        <td>Input attenuation (gain)</td>
+                        <td>{totalGain.toPrecision(4)} ({inputAttenuation.toPrecision(3)})</td>
                     </tr>
                     <tr>
-                        <td>Attenuated input (max)</td>
-                        <td></td>
+                        <td>Max clipper input</td>
+                        <td>{maxClipperInputVolts.toPrecision(3)}V</td>
                     </tr>
                     <tr>
-                        <td>Post clipper voltage (max)</td>
-                        <td></td>
+                        <td>Max input</td>
+                        <td>{maxInputVolts.toPrecision(3)}V</td>
                     </tr>
                     <tr>
                         <td>Post clipper gain</td>
-                        <td></td>
+                        <td>{postClipperGain.toPrecision(4)}</td>
                     </tr>
                     <tr>
-                        <td>Approximate clipping start</td>
-                        <td></td>
+                        <td>Approximate input clipping start</td>
+                        <td>{clippingPointInput.toPrecision(3)}V</td>
                     </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Component suggestions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Input resistor divider suggestion</td>
+                        <td>R1: {printComponentValue(suggestedResistorDivider?.r1 || 0, 'Ω')}, R2: {printComponentValue(suggestedResistorDivider?.r2 || 0, 'Ω')}</td>
+                    </tr>
+                    <tr><td>Gain: {suggestedResistorDivider?.gain.toPrecision(4)}</td></tr>
+                    <tr>
+                        <td>Post clipper gain resistor suggestion</td>
+                        <td>R_g: {printComponentValue(suggestedPostGainResistors?.r1 || 0, 'Ω')}, R_f: {printComponentValue(suggestedPostGainResistors?.r2 || 0, 'Ω')}</td>
+                    </tr>
+                    <tr><td>Gain: {suggestedPostGainResistors?.gain.toPrecision(4)}</td></tr>
+                    <tr><td>End-to-end gain: {((suggestedResistorDivider?.gain || 0) * clipperGain * (suggestedPostGainResistors?.gain || 0)).toPrecision(4)}</td></tr>
                     </tbody>
                 </table>
             </div>
             <div>
                 <LineChart
+                    xAxis={[{ data: points.map((point) => point.x * totalGain) }]}
+                    grid={{ vertical: true, horizontal: true }}
+                    series={[
+                        {
+                            data: points.map((point) => point.y * postClipperGain),
+                            area: false,
+                            showMark: false,
+                        },
+                        {
+                            data: clippingPointsLine.map((y) => y * postClipperGain),
+                            area: false,
+                            showMark: false,
+                        },
+                        {
+                            data: linearYs.map((y) => y * postClipperGain),
+                            area: false,
+                            showMark: false,
+                        },
+                    ]}
+                    width={500}
+                    height={500}
+                />
+                <LineChart
+                    title="End to end"
                     xAxis={[{ data: points.map((point) => point.x) }]}
                     grid={{ vertical: true, horizontal: true }}
                     series={[
@@ -147,20 +261,20 @@ function App() {
                             data: points.map((point) => point.y),
                             area: false,
                             showMark: false,
-                        },/*
+                        },
                         {
-                            data: opampPoints.map((point) => point.y),
+                            data: clippingPointsLine,
                             area: false,
                             showMark: false,
                         },
-                        /*{
-                            data: five.map((point) => point.y),
+                        {
+                            data: linearYs,
                             area: false,
                             showMark: false,
-                        },*/
+                        },
                     ]}
-                    width={1000}
-                    height={1000}
+                    width={500}
+                    height={500}
                 />
             </div>
         </div>

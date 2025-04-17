@@ -75,7 +75,7 @@ function testForXY(x: number, y: number) {
 }
  */
 
-function generateList(v1: number, v2: number, interval: number) {
+export function generateList(v1: number, v2: number, interval: number) {
     const values: number[] = []
     let v = v1;
     while (v < v2) {
@@ -118,6 +118,20 @@ export function solveOpAmpGainForX(points: Point[]) {
     return opAmpPoints*/
 }
 
+export function findDeviationFromLinear(points: Point[], linearGain: number) {
+    return points.map((point) => {
+        const yLinear = point.x * linearGain
+        const yDiff = yLinear - point.y
+        const yDiffPercent = yLinear === 0 ? 0 : yDiff * 100 / yLinear
+        return {
+            ...point,
+            yLinear,
+            yDiff,
+            yDiffPercent,
+        }
+    })
+}
+
 type ClipperParams = {
     I0: number
     Vt: number
@@ -125,17 +139,3 @@ type ClipperParams = {
     Rg: number,
     Rf: number,
 }
-
-/*
-let y_value = 0.2;
-
-console.log(`Finding input voltage that will give an output of ${y_value}V:`)
-const x_solution = solveForX(y_value)
-
-console.log(`  input = ${x_solution}V`);
-console.log(`  output test: ${y_value} = ${testForXY(x_solution, y_value)} (requested vs found)`)
-console.log('\n')
-console.log('Gains:')
-console.log(`  Linear........: ${g}`)
-console.log(`  For this input: ${(y_value/x_solution).toFixed(2)}`)
- */

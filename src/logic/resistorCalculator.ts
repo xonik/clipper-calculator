@@ -48,7 +48,7 @@ function getExpandedSeries(series: number[]) {
     })
 }
 
-function getAllResistorValues(series: number[], combineTwo = true) {
+function getAllResistorValues(series: number[], combineTwo = false) {
 
     let values: number[] = []
     let expandedSeries = getExpandedSeries(series) // Adds intermediate resistors to get a finer resolution
@@ -67,6 +67,7 @@ function getAllResistorValues(series: number[], combineTwo = true) {
 
 type ResistorSeriesKey = keyof typeof resistorSeries
 
+// TODO: Improve min/max to account for both r1 and r2 min/max.
 function findLeastError(r2Min: number, r2Max: number, targetGain: number, key: ResistorSeriesKey, expression: (r1: number, r2: number) => number) {
 
     const series = resistorSeries[key]
@@ -79,8 +80,8 @@ function findLeastError(r2Min: number, r2Max: number, targetGain: number, key: R
 
     let smallestError = Number.MAX_VALUE
     let bestGain = Number.MAX_VALUE
-    let bestR1
-    let bestR2
+    let bestR1 = 0
+    let bestR2 = 0
 
     // Can be optimised with binary searching
     r2Candidates.forEach((r2) => {
@@ -131,7 +132,12 @@ export function findInvertingGainCombo(rfMin: number, rfMax: number, targetGain:
 export function findNonInvertingGainCombo(rfMin: number, rfMax: number, targetGain: number, key: ResistorSeriesKey) {
     if (targetGain < 1) {
         console.log('Cannot get a gain lower than 1')
-        return Number.NaN
+        return {
+            r1: Number.NaN,
+            r2: Number.NaN,
+            gain: 0,
+            error: Number.POSITIVE_INFINITY
+        }
     }
     return findLeastError(
         rfMin,
