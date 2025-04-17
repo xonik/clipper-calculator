@@ -3,7 +3,11 @@ import './App.css';
 import { LineChart } from "@mui/x-charts";
 import { solveDiodeClipperForXRange, solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
 import { Point } from "./logic/types";
-import { findResistorDividerCombo } from "./logic/resistorCalculator";
+import {
+    findInvertingGainCombo,
+    findNonInvertingGainCombo,
+    findResistorDividerCombo
+} from "./logic/resistorCalculator";
 import { parseComponentValue, printComponentValue } from "./logic/valueParser";
 
 function App() {
@@ -14,30 +18,36 @@ function App() {
     const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01)
 
     findResistorDividerCombo(10000, 100000, 0.21, 'E12')
+    findNonInvertingGainCombo(500, 100000, 0.2, 'E12')
 
     const opampPoints = solveOpAmpGainForX(points)
     console.log(opampPoints)
 
-    console.log(parseComponentValue('1k5'))
-    console.log(parseComponentValue('1.5k'))
-    console.log(parseComponentValue('1.5M'))
-    console.log(parseComponentValue('1.5897234M'))
-    console.log(parseComponentValue('1.5M5'))
-    console.log(parseComponentValue('15000.5'))
-    console.log(parseComponentValue('15000'))
-    console.log(parseComponentValue('15000m'))
+    console.log(printComponentValue(1/1000000000000000))
+    console.log(printComponentValue(1/1000000000000))
+    console.log(printComponentValue(1/1000000000))
+    console.log(printComponentValue(1/1000000))
+    console.log(printComponentValue(1/1000))
+    console.log(printComponentValue(0.9))
+    console.log(printComponentValue(1))
+    console.log(printComponentValue(1.1))
+    console.log(printComponentValue(1500))
+    console.log(printComponentValue(1000000))
+    console.log(printComponentValue(1000000000))
+    console.log(printComponentValue(1000000000000))
 
-    console.log(printComponentValue(parseComponentValue('1k5')))
-    console.log(printComponentValue(parseComponentValue('1.5k')))
-    console.log(printComponentValue(parseComponentValue('1.5M')))
-    console.log(printComponentValue(parseComponentValue('1.5897234M')))
-    console.log(printComponentValue(parseComponentValue('1.5M5')))
-    console.log(printComponentValue(parseComponentValue('15000.5')))
-    console.log(printComponentValue(parseComponentValue('15000')))
-    console.log(printComponentValue(parseComponentValue('15000m')))
+    console.log(parseComponentValue('0.01p'))
+    console.log(parseComponentValue('1p1'))
+    console.log(parseComponentValue('1.1n'))
+    console.log(parseComponentValue('1.1u'))
+    console.log(parseComponentValue('1.1m'))
+    console.log(parseComponentValue('1.1'))
+    console.log(parseComponentValue('1.1k'))
+    console.log(parseComponentValue('1.1M'))
+    console.log(parseComponentValue('11000M'))
 
     const five: Point[] = []
-    for(let i=0; i<100; i+=10){
+    for (let i = 0; i < 100; i += 10) {
         five.push({
             x: i, y: 1000
         })
@@ -47,9 +57,12 @@ function App() {
         <div className="app">
             <div className="params">
                 <table>
-                    <th>
-                        <td>Constants</td>
-                    </th>
+                    <thead>
+                    <tr>
+                        <th>Constants</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     <tr>
                         <td>I_0</td>
                         <td><input type="text"></input></td>
@@ -62,11 +75,15 @@ function App() {
                         <td>n</td>
                         <td><input type="text"></input></td>
                     </tr>
+                    </tbody>
                 </table>
                 <table>
-                    <th>
-                        <td>Components</td>
-                    </th>
+                    <thead>
+                    <tr>
+                        <th>Components</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     <tr>
                         <td>R_gnd</td>
                         <td><input type="text"></input></td>
@@ -75,11 +92,15 @@ function App() {
                         <td>R_f</td>
                         <td><input type="text"></input></td>
                     </tr>
+                    </tbody>
                 </table>
                 <table>
-                    <th>
-                        <td>Voltages</td>
-                    </th>
+                    <thead>
+                    <tr>
+                        <th>Voltages</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     <tr>
                         <td>Max input</td>
                         <td><input type="text"></input></td>
@@ -92,11 +113,15 @@ function App() {
                         <td>Max circuit output</td>
                         <td><input type="text"></input></td>
                     </tr>
+                    </tbody>
                 </table>
                 <table>
-                    <th>
-                        <td>Calculations</td>
-                    </th>
+                    <thead>
+                    <tr>
+                        <th>Calculations</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     <tr>
                         <td>Input attenuation</td>
                         <td></td>
@@ -117,6 +142,7 @@ function App() {
                         <td>Approximate clipping start</td>
                         <td></td>
                     </tr>
+                    </tbody>
                 </table>
             </div>
             <div>

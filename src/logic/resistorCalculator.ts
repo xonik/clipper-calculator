@@ -38,12 +38,30 @@ export const resistorSeries = {
 
 const multipliers = [0.01, 0.1, 1, 10, 100, 1000, 10000, 100000] // 1 to 10MOhm
 
-
-function getAllResistorValues(series: number[]) {
-    let values: number[] = []
-    multipliers.forEach((multiplier) => {
-        values = [...values, ...series.map((value) => value * multiplier)]
+// TODO: This could perhaps be even better if we allow resistors from two multipliers down?
+function getExpandedSeries(series: number[]) {
+    return series.flatMap((value, valueIndex) => {
+        return [value, ...series
+            .map((lowerValue) => value + 0.1 * lowerValue)
+            .filter((sum) => series[valueIndex + 1] === undefined || sum < series[valueIndex + 1])
+        ]
     })
+}
+
+function getAllResistorValues(series: number[], combineTwo = true) {
+
+    let values: number[] = []
+    let expandedSeries = getExpandedSeries(series) // Adds intermediate resistors to get a finer resolution
+
+    multipliers.forEach((multiplier, multiplierIndex) => {
+
+        const selectedSeries = combineTwo && multiplierIndex > 0 ? expandedSeries : series
+
+        values = [...values, ...selectedSeries.map((value) => {
+            return Math.round((1000 * (value * multiplier))) / 1000
+        })]
+    })
+
     return values
 }
 
@@ -79,7 +97,7 @@ function findLeastError(r2Min: number, r2Max: number, targetGain: number, key: R
     })
 
     console.log(`Resistor divider: Best alternative for gain ${targetGain} is r1=${bestR1}, r2=${bestR2}`)
-    console.log(`gain = ${bestGain.toPrecision(3)}, abs error = ${smallestError.toPrecision(3)}, error % ${(smallestError*100/targetGain).toPrecision(3)}`)
+    console.log(`gain = ${bestGain.toPrecision(3)}, abs error = ${smallestError.toPrecision(3)}, error % ${(smallestError * 100 / targetGain).toPrecision(3)}`)
 
     return {
         r1: bestR1,
@@ -106,16 +124,20 @@ export function findInvertingGainCombo(rfMin: number, rfMax: number, targetGain:
         rfMax,
         targetGain,
         key,
-        (rIn: number, rf: number) => rf/rIn
+        (rIn: number, rf: number) => rf / rIn
     )
 }
 
 export function findNonInvertingGainCombo(rfMin: number, rfMax: number, targetGain: number, key: ResistorSeriesKey) {
+    if (targetGain < 1) {
+        console.log('Cannot get a gain lower than 1')
+        return Number.NaN
+    }
     return findLeastError(
         rfMin,
         rfMax,
         targetGain,
         key,
-        (rIn: number, rf: number) => 1 + rf/rIn
+        (rIn: number, rf: number) => 1 + rf / rIn
     )
 }
