@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
 import { LineChart } from "@mui/x-charts";
 import { solveDiodeClipperForXRange, solveDiodeClipperForYRange, solveOpAmpGainForX } from "./logic/diodeClipperSolver";
@@ -14,37 +14,30 @@ function App() {
 
     //const points = calculatePoints(100)
 
-    const points = solveDiodeClipperForYRange(0, 0.6, 0.02)
-    const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01)
+    const [I0, setI0] = useState(printComponentValue(2 / 1000000000))
+    const [Vt, setVt] = useState(printComponentValue(25/1000))
+    const [n, setN] = useState(printComponentValue(1.9))
+
+    const [Rg, setRg] = useState('1k')
+    const [Rf, setRf] = useState('10k')
+
+
+    const solverParams = {
+        I0: parseComponentValue(I0),
+        Vt: parseComponentValue(Vt),
+        n: parseComponentValue(n),
+        Rg: parseComponentValue(Rg),
+        Rf: parseComponentValue(Rf),
+    }
+
+    const points = solveDiodeClipperForYRange(0, 0.6, 0.02, solverParams)
+    const points1 = solveDiodeClipperForXRange(0, 0.11, 0.01, solverParams)
 
     findResistorDividerCombo(10000, 100000, 0.21, 'E12')
     findNonInvertingGainCombo(500, 100000, 0.2, 'E12')
 
-    const opampPoints = solveOpAmpGainForX(points)
-    console.log(opampPoints)
-
-    console.log(printComponentValue(1/1000000000000000))
-    console.log(printComponentValue(1/1000000000000))
-    console.log(printComponentValue(1/1000000000))
-    console.log(printComponentValue(1/1000000))
-    console.log(printComponentValue(1/1000))
-    console.log(printComponentValue(0.9))
-    console.log(printComponentValue(1))
-    console.log(printComponentValue(1.1))
-    console.log(printComponentValue(1500))
-    console.log(printComponentValue(1000000))
-    console.log(printComponentValue(1000000000))
-    console.log(printComponentValue(1000000000000))
-
-    console.log(parseComponentValue('0.01p'))
-    console.log(parseComponentValue('1p1'))
-    console.log(parseComponentValue('1.1n'))
-    console.log(parseComponentValue('1.1u'))
-    console.log(parseComponentValue('1.1m'))
-    console.log(parseComponentValue('1.1'))
-    console.log(parseComponentValue('1.1k'))
-    console.log(parseComponentValue('1.1M'))
-    console.log(parseComponentValue('11000M'))
+    //const opampPoints = solveOpAmpGainForX(points)
+    //console.log(opampPoints)
 
     const five: Point[] = []
     for (let i = 0; i < 100; i += 10) {
@@ -65,15 +58,15 @@ function App() {
                     <tbody>
                     <tr>
                         <td>I_0</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={I0} onChange={(event) => setI0(event.target.value)}></input></td>
                     </tr>
                     <tr>
                         <td>V_t</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={Vt} onChange={(event) => setVt(event.target.value)}></input></td>
                     </tr>
                     <tr>
                         <td>n</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={n} onChange={(event) => setN(event.target.value)}></input></td>
                     </tr>
                     </tbody>
                 </table>
@@ -86,11 +79,11 @@ function App() {
                     <tbody>
                     <tr>
                         <td>R_gnd</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={Rg} onChange={(event) => setRg(event.target.value)}></input></td>
                     </tr>
                     <tr>
                         <td>R_f</td>
-                        <td><input type="text"></input></td>
+                        <td><input type="text" value={Rf} onChange={(event) => setRf(event.target.value)}></input></td>
                     </tr>
                     </tbody>
                 </table>

@@ -11,6 +11,7 @@ export function calculatePoints(numberOfPoints: number) {
     return points
 }
 
+/*
 export function findGoodParams(maxInput: number, gain: number, maxClipperOut: number) {
     const maxX = solveForX(maxClipperOut)
     const inputGain = maxX / maxInput
@@ -22,4 +23,4 @@ export function findGoodParams(maxInput: number, gain: number, maxClipperOut: nu
         inputGain,
         clipperOutGain,
     }
-}
+}*/
